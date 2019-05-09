@@ -17,7 +17,9 @@ cache: pip
 before_install:
 - export BOTO_CONFIG=/dev/null
 install:
-- pip install pipenv
+# need to install specific pipenv version that works with pypy3
+# See https://github.com/pypa/pipenv/issues/3313 and https://github.com/Lumen5/pygetty/pull/12
+- pip install pipenv==2018.10.13
 - pip install --upgrade pytest
 - pipenv install --dev --skip-lock
 - travis_wait 30 python -m nltk.downloader punkt
