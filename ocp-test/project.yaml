@@ -98,7 +98,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 100Mi
+      storage: 500Mi
   storageClassName: pomppa24
 ---
 apiVersion: route.openshift.io/v1
