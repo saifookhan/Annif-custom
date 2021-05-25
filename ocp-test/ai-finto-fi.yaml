@@ -1,0 +1,134 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: ai-finto-fi-nginx
+---
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: ai-finto-fi-nginx
+spec:
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        namespace: openshift
+        name: 'nginx:1.16-el7'
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/NatLibFi/Annif.git'
+      ref: api-instances
+    contextDir: /ai.finto.fi
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'ai-finto-fi-nginx:latest'
+  triggers:
+    - type: Generic
+      generic:
+        secretReference:
+          name: ai-finto-fi-generic-webhook-secret
+    - type: GitHub
+      github:
+        secretReference:
+          name: ai-finto-fi-github-webhook-secret
+    - type: ImageChange
+      imageChange:
+        lastTriggeredImageID: >-
+          image-registry.openshift-image-registry.svc:5000/openshift/nginx@sha256:2878cf2a32e2bd86b8b00c9349e38f652a2952b47a2f891303ea96c7998b7d34
+    - type: ConfigChange
+  runPolicy: Serial
+---
+kind: DeploymentConfig
+apiVersion: apps.openshift.io/v1
+metadata:
+  name: ai-finto-fi-nginx
+  labels:
+    app: ai-finto-fi-nginx
+    app.kubernetes.io/component: ai-finto-fi-nginx
+    app.kubernetes.io/instance: ai-finto-fi-nginx
+    app.kubernetes.io/name: nginx-nginx
+    app.kubernetes.io/part-of: ai-finto-fi-nginx
+    app.openshift.io/runtime: nginx
+    app.openshift.io/runtime-version: 1.16-el7
+spec:
+  strategy:
+    type: Rolling
+    rollingParams:
+      updatePeriodSeconds: 1
+      intervalSeconds: 1
+      timeoutSeconds: 600
+      maxUnavailable: 25%
+      maxSurge: 25%
+    resources: {}
+    activeDeadlineSeconds: 21600
+  triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+          - ai-finto-fi-nginx
+        from:
+          kind: ImageStreamTag
+          name: 'ai-finto-fi-nginx:latest'
+    - type: ConfigChange
+  replicas: 1
+  revisionHistoryLimit: 10
+  test: false
+  selector:
+    app: ai-finto-fi-nginx
+    deploymentconfig: ai-finto-fi-nginx
+  template:
+    metadata:
+      labels:
+        app: ai-finto-fi-nginx
+        deploymentconfig: ai-finto-fi-nginx
+    spec:
+      containers:
+        - name: ai-finto-fi-nginx
+          # Should the image below be specified with a hash, or is "latest" enough?
+          image: >-
+            image-registry.openshift-image-registry.svc:5000/annif/ai-finto-fi-nginx:latest
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+            - containerPort: 8443
+              protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: Always
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      securityContext: {}
+      schedulerName: default-scheduler
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+spec:
+  selector:
+    app: ai-finto-fi-nginx
+  ports:
+  - name: ai-finto-fi-nginx
+    port: 8080
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: annif
+  labels:
+    type: external
+spec:
+  host: ai.finto.fi.ext.ocp-test-0.k8s.it.helsinki.fi
+  port:
+    targetPort: 8080
+  to:
+    kind: Service
+    name: nginx
+    weight: 100
+  wildcardPolicy: None
