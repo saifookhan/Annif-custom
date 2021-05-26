@@ -46,23 +46,7 @@ metadata:
   name: ai-finto-fi-nginx
   labels:
     app: ai-finto-fi-nginx
-    app.kubernetes.io/component: ai-finto-fi-nginx
-    app.kubernetes.io/instance: ai-finto-fi-nginx
-    app.kubernetes.io/name: nginx-nginx
-    app.kubernetes.io/part-of: ai-finto-fi-nginx
-    app.openshift.io/runtime: nginx
-    app.openshift.io/runtime-version: 1.16-el7
 spec:
-  strategy:
-    type: Rolling
-    rollingParams:
-      updatePeriodSeconds: 1
-      intervalSeconds: 1
-      timeoutSeconds: 600
-      maxUnavailable: 25%
-      maxSurge: 25%
-    resources: {}
-    activeDeadlineSeconds: 21600
   triggers:
     - type: ImageChange
       imageChangeParams:
@@ -74,7 +58,6 @@ spec:
           name: 'ai-finto-fi-nginx:latest'
     - type: ConfigChange
   replicas: 1
-  revisionHistoryLimit: 10
   test: false
   selector:
     app: ai-finto-fi-nginx
@@ -102,15 +85,6 @@ spec:
             - name: nginx-conf
               mountPath: /opt/app-root/etc/nginx.default.d/server-context.conf
               subPath: server-context.conf
-          resources: {}
-          terminationMessagePath: /dev/termination-log
-          terminationMessagePolicy: File
-          imagePullPolicy: Always
-      restartPolicy: Always
-      terminationGracePeriodSeconds: 30
-      dnsPolicy: ClusterFirst
-      securityContext: {}
-      schedulerName: default-scheduler
       volumes:
         - name: nginx-conf
           configMap:
@@ -124,8 +98,7 @@ spec:
   selector:
     app: ai-finto-fi-nginx
   ports:
-  - name: ai-finto-fi-nginx
-    port: 8080
+  - port: 8080
 ---
 apiVersion: route.openshift.io/v1
 kind: Route
@@ -140,7 +113,6 @@ spec:
   to:
     kind: Service
     name: nginx
-    weight: 100
   wildcardPolicy: None
 ---
 ### Annif application
@@ -161,12 +133,9 @@ metadata:
     app: annif-app
   name: annif-app
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: annif-app
-  strategy:
-    type: RollingUpdate
   template:
     metadata:
       labels:
@@ -182,12 +151,11 @@ spec:
             initialDelaySeconds: 600
             periodSeconds: 15
           name: annif-app
-          resources: {}
           volumeMounts:
             - mountPath: /annif-projects
               name: model-data
+              # TODO: Switch to readOnly, if model syncing method allows.
               #readOnly: true
-      restartPolicy: Always
       volumes:
         - name: model-data
           persistentVolumeClaim:
