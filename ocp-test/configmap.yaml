@@ -3,19 +3,17 @@ kind: ConfigMap
 metadata:
   name: nginx-conf
 data:
-  nginx.conf: |-
+  http-context.conf: |-
     client_max_body_size 5M;
-    upstream upstream_servers {
+    upstream annif-app {
         server annif-app:8000;
     }
-  default.conf: |-
-    server_name localhost;
-
+  server-context.conf: |-
     location /v1/ {
-        proxy_pass http://upstream_servers;
+        proxy_pass http://annif-app;
     }
     location ~ \/v1/projects\/([^/]*)\/analyze$ {
-        proxy_pass http://upstream_servers/v1/projects/$1/suggest;
+        proxy_pass http://annif-app/v1/projects/$1/suggest;
     }
     location ~ \/v1/projects\/([^/]*)\/learn$ {
         deny  all;
