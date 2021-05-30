@@ -32,6 +32,7 @@ RUN apt-get update \
 		vowpalwabbit==8.8.1 \
         ## LMDB
         && pip install --no-cache-dir lmdb==1.0.0
+	
 
 
 
@@ -45,6 +46,8 @@ RUN apt-get update \
 	&& apt-get install -y --no-install-recommends \
 		libvoikko1 \
 		voikko-fi \
+		nodejs \
+		npm \
 	# Vowpal Wabbit dependencies:
 	&& apt-get install -y --no-install-recommends \
 		libboost-program-options1.67.0 \
